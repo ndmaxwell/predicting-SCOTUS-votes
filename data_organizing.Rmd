@@ -1,0 +1,55 @@
+---
+title: "Milestone4"
+author: "Nick Maxwell"
+date: "10/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readr)
+library(gganimate)
+```
+
+```{r}
+justiceCentered <- 
+  read_csv("SCDB_2020_01_justiceCentered_LegalProvision.csv")
+```
+
+```{r}
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+justiceCenteredfixed <- justiceCentered %>% 
+  mutate(year = as.numeric(substrRight(dateDecision, 4))) %>% 
+  select(justiceName, direction, year) %>% 
+  group_by(year, justiceName) %>% 
+  summarize(ideology = mean(direction, na.rm = T), .groups = "drop") %>% 
+  arrange(desc(ideology))
+
+p1 <- justiceCenteredfixed %>% 
+            filter(year == input$year) %>%
+            arrange(desc(ideology)) %>% 
+            slice(1:5) %>% 
+            ggplot(aes(x = justiceName, y = ideology)) +
+            geom_col() +
+            theme_classic() +
+            labs(y = "Ideology Score - Conservative (1) - Liberal (2)",
+                 x = "Justice",
+                 title = "5 Most Liberal Justices Serving on the Court")
+        p1 + transition_time(year) +
+            labs(title = "Year: {frame_time}") +
+            view_follow(fixed_y = TRUE)
+
+```
+
+```{r}
+justiceCenteredfixed %>% 
+  arrange(desc(ideology)) %>% 
+  ggplot(aes(x = year, y = ideology, color = justiceName)) +
+    geom_line()
+    
+```
+
