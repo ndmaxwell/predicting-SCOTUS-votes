@@ -108,6 +108,7 @@ server <- function(input, output) {
     
     output$predictionplot <- renderPlot({
         roberts_ideology_decisions %>% 
+            
             filter(justiceName == input$Justice) %>%
             ggplot(aes(x = year, y = ideology)) +
             geom_line() +
