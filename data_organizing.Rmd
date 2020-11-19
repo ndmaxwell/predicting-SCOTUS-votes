@@ -112,6 +112,8 @@ glm_wfl %>%
          y = "Direction"
          )
 
+new
+
 ```
 p1 <- justiceCenteredfixed %>% 
             filter(year == input$year) %>%
