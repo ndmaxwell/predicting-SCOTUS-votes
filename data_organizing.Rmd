@@ -10,11 +10,16 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readr)
 library(gganimate)
+library(rstanarm)
+library(tidymodels)
 ```
 
 ```{r}
 justiceCentered <- 
   read_csv("SCDB_2020_01_justiceCentered_LegalProvision.csv")
+
+justiceIdeology <- read_csv("justices.csv")
+
 ```
 
 ```{r}
@@ -29,6 +34,85 @@ justiceCenteredfixed <- justiceCentered %>%
   summarize(ideology = mean(direction, na.rm = T), .groups = "drop") %>% 
   arrange(desc(ideology))
 
+justiceIdeologyyear <- justiceIdeology %>% 
+  mutate(year = term) %>% 
+  select(-term)
+
+roberts <- justiceCentered %>% 
+  mutate(year = as.numeric(substrRight(dateDecision, 4))) %>% 
+  filter(chief == "Roberts")
+
+roberts_small <- roberts %>% 
+  select(year, justiceName, justice, direction, issue, issueArea)
+
+# Here, we'll just look at issueArea rather than issue - (the latter gets too
+# granular too fast. I will, however, add options in the Shiny App to look at
+# abortion and affirmative action, two hot-button issues. Abortion (including
+# contraceptives) Issue = 50020, Affirmative Action = 20070
+
+joined_data <- left_join(roberts_small, justiceIdeologyyear, 
+                  by = c("year" = "year", 
+                  "justice" = "justice",
+                  "justiceName" = "justiceName")) %>% 
+                   mutate(justiceName = recode(justiceName, 
+                                      "SDOConnor" = "O'Connor",
+                                      "JPStevens" = "Stevens",
+                                      "AScalia" = "Scalia",
+                                      "AMKennedy" = "Kennedy",
+                                      "DHSouter" = "Souter",
+                                      "CThomas" = "Thomas",
+                                      "RBGinsburg" = "Ginsburg",
+                                      "SGBreyer" = "Breyer",
+                                      "JGRoberts" = "Roberts",
+                                      "SAAlito" = "Alito",
+                                      "SSotomayor" = "Sotomayor",
+                                      "EKagan" = "Kagan",
+                                      "NMGorsuch" = "Gorsuch",
+                                      "BMKavanaugh" = "Kavanaugh")) %>% 
+                 mutate(issueArea = recode(issueArea,
+                                           "1" = "Criminal Procedure",
+                                           "2" = "Civil Rights",
+                                           "3" = "First Amendment",
+                                           "4" = "Due Process",
+                                           "5" = "Privacy",
+                                           "6" = "Attorneys",
+                                           "7" = "Unions",
+                                           "8" = "Economic Activity",
+                                           "9" = "Judicial Power",
+                                           "10" = "Federalism",
+                                           "11" = "Interstate Relations",
+                                           "12" = "Federal Taxation",
+                                           "13" = "Miscallaneous",
+                                           "14" = "Private Action")) %>% 
+                 mutate(direction = as.factor(recode(direction,
+                                           "1" = "Conservative",
+                                           "2" = "Liberal"))) %>% 
+                 drop_na()
+
+
+glm_wfl <- workflow() %>% 
+  add_model(logistic_reg() %>%
+            set_engine("glm") %>%
+            set_mode("classification")) %>% 
+  add_recipe(recipe(direction ~ post_mn + issueArea,
+                    data = joined_data) %>% 
+               step_dummy(issueArea) %>% 
+               step_interact(~ post_mn * issueArea)
+             )
+
+glm_wfl %>% 
+  fit(data = joined_data) %>% 
+  predict(new_data = joined_data) %>% 
+  bind_cols(joined_data %>% select(direction)) %>% 
+  ggplot(aes(y = direction, x = `.pred_class`)) +
+    geom_jitter(height = 0.2, alpha = 0.01) +
+    labs(title = "Predicting Direction",
+         subtitle = "Using ideology scores",
+         x = "Predicted Direction",
+         y = "Direction"
+         )
+
+```
 p1 <- justiceCenteredfixed %>% 
             filter(year == input$year) %>%
             arrange(desc(ideology)) %>% 
