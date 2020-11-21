@@ -87,6 +87,10 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
                  mutate(direction = as.factor(recode(direction,
                                            "1" = "Conservative",
                                            "2" = "Liberal"))) %>% 
+                 mutate(conservative = as.factor(ifelse(direction == 
+                                                "Conservative", 1, 0))) %>% 
+                 mutate(justiceName = as.factor(justiceName),
+                        issueArea = as.factor(issueArea)) %>% 
                  drop_na()
 
 
@@ -94,26 +98,80 @@ glm_wfl <- workflow() %>%
   add_model(logistic_reg() %>%
             set_engine("glm") %>%
             set_mode("classification")) %>% 
-  add_recipe(recipe(direction ~ post_mn + issueArea,
+  add_recipe(recipe(conservative ~ post_mn + issueArea,
                     data = joined_data) %>% 
-               step_dummy(issueArea) %>% 
                step_interact(~ post_mn * issueArea)
              )
 
 glm_wfl %>% 
   fit(data = joined_data) %>% 
   predict(new_data = joined_data) %>% 
-  bind_cols(joined_data %>% select(direction)) %>% 
-  ggplot(aes(y = direction, x = `.pred_class`)) +
+  bind_cols(joined_data %>% select(conservative)) %>% 
+  ggplot(aes(y = conservative, x = `.pred_class`)) +
     geom_jitter(height = 0.2, alpha = 0.01) +
     labs(title = "Predicting Direction",
          subtitle = "Using ideology scores",
          x = "Predicted Direction",
          y = "Direction"
          )
+```
 
-new
 
+```{r}
+prediction_model <- stan_glm(data = joined_data,
+         formula = conservative ~ post_mn + issueArea,
+         refresh = 0,
+         family = binomial(link = "logit"))
+
+new <- tibble("post_mn" = 3.5,
+              "issueArea" = "Privacy")
+
+prediction_posterior <- posterior_predict(prediction_model, newdata = new) %>%
+    as_tibble() %>%
+    mutate_all(as.numeric) %>% 
+    summarize(prob.conservative = mean(`1`))
+
+```
+
+
+```{r}
+new_graph <- tibble("post_mn" = seq(-4, 4, 0.1),
+              "issueArea" = "First Amendment")
+
+prediction_posterior <- posterior_predict(prediction_model, 
+                                          newdata = new_graph, draws = 4000) %>%
+    as_tibble() %>%
+    mutate_all(as.numeric) %>% 
+    pivot_longer(cols = everything(),
+               names_to = "ideology_score",
+               values_to = "outcome") %>% 
+    mutate(ideology_score = as.numeric(ideology_score)) %>%
+    group_by(ideology_score) %>% 
+    summarize(proportion_voting = mean(outcome), .groups = "drop") %>% 
+    mutate(ideology_score = -4 + .1*(ideology_score - 1))
+    
+prediction_posterior %>% 
+  ggplot(aes(x = ideology_score, y = proportion_voting)) +
+    geom_line() +
+    labs(title = "Posterior Distribution for Probability of Voting Conservative",
+         x = "Ideology",
+         y = "Probability") +
+    scale_x_continuous(breaks = seq(-4, 4, 1)) +
+    theme_linedraw()
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+print(prediction_model, digits = 4)
+```
+
+
+```{r}
 ```
 p1 <- justiceCenteredfixed %>% 
             filter(year == input$year) %>%
