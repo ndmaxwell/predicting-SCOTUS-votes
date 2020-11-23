@@ -90,7 +90,8 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
                  mutate(conservative = as.factor(ifelse(direction == 
                                                 "Conservative", 1, 0))) %>% 
                  mutate(justiceName = as.factor(justiceName),
-                        issueArea = as.factor(issueArea)) %>% 
+                        issueArea = as.factor(issueArea)) %>%
+                 mutate(year = as.integer(year)) %>% 
                  drop_na()
 
 

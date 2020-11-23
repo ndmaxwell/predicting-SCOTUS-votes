@@ -35,21 +35,23 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("year",
-                        "Year:",
-                        min = 1946,
-                        max = 2020,
-                        value = 1),
+          #  sliderInput("year",
+                    #    "Year:",
+                     #   min = 1946,
+                     #   max = 2020,
+                      #  value = 1),
                 selectInput(
                     inputId = "Justice",    # a name for the value you choose here
-                    label = "Look at the Change in a Particular Justice's Ideology",
+                    label = "Look at the Change in a Particular 
+                    Justice's Ideology during the Robert's Court",
                     choices = justicelist)   # your list of choices to choose from
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("mostliberalplot"),
-           plotOutput("indivjusticetime")
+          # plotOutput("mostliberalplot"),
+           plotOutput("indivjusticetime"),
+           plotOutput("alljusticetime")
         )
     )
 ),
@@ -57,11 +59,16 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
 tabPanel("About",
          h3("This is an about me! My name is Nick Maxwell"),
          p("Here is the link to my Github: https://github.com/ndmaxwell/finalproject"),
-         p("For this project, I'm pulling data from several sources related to the Supreme Court.
-               One set contains the full text from nearl every Supreme Court decision, and another
-           records decisions by Justices as defined by ideology. Finally, I have a dataset that makes 
-           use of more personal background information on the Justices. Collectively, I intend to use these
-           datasets to explore the ideological evolutions of different Justices based on their personal characteristics.")),
+         p("The goals of this project were two-fold. First, I wanted to get a 
+           better sense of how maleable justices' ideologies were over time. 
+           Second, I wanted to see to what extent we would be able to predict a 
+           justice's vote on a given issue area given their ideological score 
+           (specifically, their Martin-Quinn score). To build this model and find 
+           the historical data necessary, I combined data from Washington 
+           University Law's Supreme Court database, which gave me historical data 
+           going back to the 1940s with every case and how every justice voted with 
+           the University of Michigan's Justices dataset containing Martin Quinn 
+           ideology scores for each justice in each year.")),
 
 tabPanel("Predicting A Convervative Vote by Issue",
          sidebarLayout(
@@ -79,28 +86,40 @@ tabPanel("Predicting A Convervative Vote by Issue",
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    output$mostliberalplot <- renderPlot({
-        justiceCenteredfixed %>% 
-            filter(year == input$year) %>%
-            arrange(desc(ideology)) %>% 
-            slice(1:5) %>%
-            ggplot(aes(x = justiceName, y = ideology)) +
-            geom_col() +
-            theme_classic() +
-            labs(y = "Ideology Score - Conservative (1) - Liberal (2)",
-                 x = "Justice",
-                 title = "5 Most Liberal Justices Serving on the Court")
+  #  output$mostliberalplot <- renderPlot({
+      #  justiceCenteredfixed %>% 
+           # filter(year == input$year) %>%
+           # arrange(desc(ideology)) %>% 
+           # slice(1:5) %>%
+           # ggplot(aes(x = justiceName, y = ideology)) +
+           # geom_col() +
+           # theme_classic() +
+           # labs(y = "Ideology Score - Conservative (1) - Liberal (2)",
+               #  x = "Justice",
+               #  title = "5 Most Liberal Justices Serving on the Court")
     
-    })
+   # })
     output$indivjusticetime <- renderPlot({
-        justiceCenteredfixed %>% 
+      roberts_ideology_decisions %>% 
             filter(justiceName == input$Justice) %>%
-            ggplot(aes(x = year, y = ideology)) +
+            ggplot(aes(x = year, y = post_mn)) +
             geom_line() +
             theme_classic() +
-            labs(y = "Ideology Score - Conservative (1) - Liberal (2)",
+            xlim(2005, 2019) +
+            labs(y = "Ideology Score - Higher Values are more Conservative",
                  x = "Year",
                  title = "Ideology of Justice Over Time")
+    })
+    output$alljusticetime <- renderPlot({
+      roberts_ideology_decisions %>% 
+        ggplot(aes(x = year, y = post_mn, color = justiceName)) +
+        geom_line() +
+        theme_classic() +
+        xlim(2005, 2019) +
+        labs(y = "Ideology Score - Higher Values are more Conservative",
+             x = "Year",
+             title = "Ideology of Justice Over Time") +
+        scale_color_discrete(name = "Justice")
     })
 
     output$predictionplot <- renderPlot({
@@ -123,7 +142,7 @@ server <- function(input, output) {
             ggplot(aes(x = ideology_score, y = proportion_voting)) +
             geom_line() +
             labs(title = "Posterior Distribution for Probability of Voting Conservative",
-                 x = "Ideology",
+                 x = "Ideology (Higher Scores are more Conservative)",
                  y = "Probability") +
             scale_x_continuous(breaks = seq(-4, 4, 1)) +
             theme_linedraw()
