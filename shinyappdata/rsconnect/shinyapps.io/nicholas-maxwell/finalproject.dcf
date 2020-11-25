@@ -1,0 +1,12 @@
+name: finalproject
+title: finalproject
+username:
+account: nicholas-maxwell
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3292494
+bundleId: 3902901
+url: https://nicholas-maxwell.shinyapps.io/finalproject/
+when: 1606281129.76398
+asMultiple: FALSE
+asStatic: FALSE
