@@ -46,8 +46,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
         sidebarPanel(
                 checkboxGroupInput(
                     inputId = "Justices", 
-                    label = "Look at the Change of in the 
-                    Ideologies of Justices over Time",
+                    label = "Choose Justices to Compare",
                     choices = justicelist_no_oconnor) 
         ),
         
