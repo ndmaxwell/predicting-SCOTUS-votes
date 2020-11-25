@@ -36,7 +36,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
            The Justices dataset, containing Martin Quinn ideology scores for 
              each justice in each year can be found", 
              a("here", href="https://mqscores.lsa.umich.edu/measures.php"),
-             ". The Washington University Law's Supreme Court databse can be 
+             ". The Washington University Law's Supreme Court database can be 
              found",
              a("here", href="http://scdb.wustl.edu/data.php"), ".")),
     
