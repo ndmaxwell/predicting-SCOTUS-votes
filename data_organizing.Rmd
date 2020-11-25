@@ -13,9 +13,10 @@ library(gganimate)
 library(rstanarm)
 library(tidymodels)
 library(RColorBrewer)
+
 ```
 
-```{r}
+```{r import data}
 justiceCentered <- 
   read_csv("SCDB_2020_01_justiceCentered_LegalProvision.csv",
            col_types = cols())
@@ -25,7 +26,7 @@ justiceIdeology <- read_csv("justices.csv",
 
 ```
 
-```{r}
+```{r clean data}
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
 }
@@ -34,17 +35,23 @@ justiceIdeologyyear <- justiceIdeology %>%
   mutate(year = term) %>% 
   select(-term)
 
+ # Making year rather than term appear for simplicity and for potential binding
+ # value later.
+
 roberts <- justiceCentered %>% 
   mutate(year = as.numeric(substrRight(dateDecision, 4))) %>% 
   filter(chief == "Roberts")
 
+ # For this project, I'm only looking at the Roberts court, so we'll filter to
+ # that effect and calculate the year in this dataset using the function I
+ # defined above.
+
 roberts_small <- roberts %>% 
   select(year, justiceName, justice, direction, issue, issueArea)
 
-# Here, we'll just look at issueArea rather than issue - (the latter gets too
-# granular too fast. I will, however, add options in the Shiny App to look at
-# abortion and affirmative action, two hot-button issues. Abortion (including
-# contraceptives) Issue = 50020, Affirmative Action = 20070
+ # I'll only need these columns for this data, so I'm going to select them here
+ # so I can speed along processing time since we're working with a big dataset.
+
 
 joined_data <- left_join(roberts_small, justiceIdeologyyear, 
                   by = c("year" = "year", 
@@ -90,37 +97,44 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
                  mutate(year = as.integer(year)) %>%
                  drop_na()
 
+# This is a long join. The idea here is to merge the "roberts_small" dataset,
+# which contains decisions for each case during the Roberts term, with the
+# "justiceIdeologyyear" dataset, which contains Martin-Quinn ideology scores for
+# each justice for each year. This will allow us to run a regression to predict
+# vote outcome probabilities for different issues depending on these ideology
+# scores. I needed to do a bit of cleaning here to get the justice names in a
+# more friendly format, code the issue areas so that they are easily readable,
+# and then recode the "conservative" variable, as well as factor transform a few
+# other variables.
 
 roberts_issue_area_votes <- joined_data %>% 
   mutate(conservative = as.integer(conservative) - 1) %>% 
   select(justiceName, issueArea, conservative) %>% 
   drop_na() %>% 
   group_by(issueArea, justiceName) %>% 
-  summarize(percentage = mean(conservative)) 
+  summarize(percentage = mean(conservative), .groups = "drop") 
 
-colourCount <- length(unique(roberts_issue_area_votes$justiceName))
-getPalette <- colorRampPalette(brewer.pal(n = 5, name = "Dark2"))
-
-test_plot <- roberts_issue_area_votes %>% 
-  filter(issueArea == "Attorneys") %>% 
-    ggplot(aes(y = fct_reorder(justiceName, percentage), x = percentage, 
-               fill = getPalette(colourCount))) +
-      geom_col() 
-  # scale_fill_brewer(palette = "RdYlBu")
-test_plot
-
+# This quick dataset allows us to visualize the proportion of conservative votes
+# for each justice for each issue area. I've saved this as a .rds file so I can
+# quickly use it in my Shiny App.
 
 ```
 
-```{r}
-new_tibble<-tibble(post_mn=rep(seq(-4,4,.1),13),
-                   issueArea=rep(c("Criminal Procedure", "Civil Rights",
+```{r prediction model}
+new_tibble <- tibble(post_mn = rep(seq(-4, 4, .1), 13),
+                   issueArea = rep(c("Criminal Procedure", "Civil Rights",
                     "First Amendment", "Due Process", "Privacy", "Attorneys",
-                    "Unions", "Economic Activity", "Judicial Power", "Federalism",
-                    "Federal Taxation", "Miscallaneous",
-                    "Private Action"), each=81))
+                    "Unions", "Economic Activity", "Judicial Power", 
+                    "Federalism", "Federal Taxation", "Miscallaneous",
+                    "Private Action"), each = 81))
 
-all_issue_ideology <- posterior_predict(prediction_model, newdata = new_tibble) %>%
+prediction_model <- stan_glm(conservative ~ issueArea*post_mn,
+                             data = joined_data,
+                             refresh = 0,
+                             binomial(link = "logit"))
+
+all_issue_ideology <- posterior_predict(prediction_model, 
+                                        newdata = new_tibble) %>%
     as_tibble() %>%
     mutate_all(as.numeric) %>% 
     summarize_all(mean) %>% 
@@ -129,6 +143,20 @@ all_issue_ideology <- posterior_predict(prediction_model, newdata = new_tibble) 
                values_to = "outcome") %>% 
     bind_cols(new_tibble) %>% 
     select(-ideology_score)
+
+# This is the full code for the logistic regression that will allow us to
+# predict a conservative vote for a given issue area. To combine precision with
+# feasibility as far as run time, I used a step of 0.1 to cover the ideology
+# scores of -4 to 4. I then had each value repeated for each issue area in the
+# dataset. After running a simple logistic regression, I was able to use
+# posterior predict (and after some data wrangling/transformation) to create a
+# tibble that has the probability of a conservative vote for each issue area for
+# each baseline Martin-Quinn ideology score. I then saved this tibble as a .rds
+# object so that I can easily graph the relevant data in a ggplot in the Shiny
+# App. Originally, I ran the model in the Shiny App itself, but this led to long
+# lag times and long upload times. Running all of the calculations and saving
+# the results in a .rds file is far more efficient.
+
 ```
 
 
