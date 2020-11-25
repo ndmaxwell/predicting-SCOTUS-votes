@@ -70,7 +70,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
     # "roberts_issue_area_votes" tibble in the data_organizing.Rmd file. It was
     # saved as an RDS and imported.
 
-tabPanel("Roberts Court votes by Issue",
+tabPanel("Voting by Issue",
          sidebarLayout(
            sidebarPanel(
              selectInput(
@@ -97,7 +97,7 @@ tabPanel("Roberts Court votes by Issue",
      # End of panel 3. Similarly, the goal here was to give viewers an idea of
      # the distribution of votes by different issue areas.
 
-tabPanel("Predicting A Convervative Vote by Issue",
+tabPanel("Predicting Votes",
          sidebarLayout(
              sidebarPanel(
               selectInput(
