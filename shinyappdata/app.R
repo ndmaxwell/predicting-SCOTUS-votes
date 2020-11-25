@@ -20,8 +20,9 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
     "Examining the Ideology of the Roberts Court",
     tabPanel("About",
              h3("Hello! My name is Nick Maxwell."),
-             p("Here is the link to my Github: 
-               https://github.com/ndmaxwell/finalproject"),
+             p("Here is the link to my Github:",
+               a("https://github.com/ndmaxwell/finalproject", 
+                 href="https://github.com/ndmaxwell/finalproject")),
              p("The goals of this project were two-fold. First, I wanted to get
              a better sense of how maleable justices' ideologies were over time. 
            Second, I wanted to see to what extent we would be able to predict a 
