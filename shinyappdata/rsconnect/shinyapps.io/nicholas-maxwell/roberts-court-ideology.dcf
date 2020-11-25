@@ -5,8 +5,8 @@ account: nicholas-maxwell
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3298675
-bundleId: 3903123
+bundleId: 3903274
 url: https://nicholas-maxwell.shinyapps.io/roberts-court-ideology/
-when: 1606285944.22039
+when: 1606289105.03337
 asMultiple: FALSE
 asStatic: FALSE
