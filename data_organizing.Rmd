@@ -8,11 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(readr)
-library(gganimate)
 library(rstanarm)
-library(tidymodels)
-library(RColorBrewer)
 
 ```
 
@@ -106,7 +102,9 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
 # more friendly format, code the issue areas so that they are easily readable,
 # and then recode the "conservative" variable, as well as factor transform a few
 # other variables.
+```
 
+```{r ideological history plot}
 roberts_issue_area_votes <- joined_data %>% 
   mutate(conservative = as.integer(conservative) - 1) %>% 
   select(justiceName, issueArea, conservative) %>% 
@@ -117,7 +115,6 @@ roberts_issue_area_votes <- joined_data %>%
 # This quick dataset allows us to visualize the proportion of conservative votes
 # for each justice for each issue area. I've saved this as a .rds file so I can
 # quickly use it in my Shiny App.
-
 ```
 
 ```{r prediction model}
