@@ -1,6 +1,7 @@
 library(shiny)
 library(tidyverse)
 library(shinythemes)
+library(ggthemes)
 
 # Load in data through .rds files.
 
@@ -158,12 +159,16 @@ server <- function(input, output) {
       filter(justiceName %in% input$Justices) %>% 
       ggplot(aes(x = year, y = post_mn, color = justiceName)) +
       geom_line() +
-      theme_classic() +
+      theme_economist() +
       xlim(2005, 2019) +
       labs(y = "Ideology Score - Greater Values are more Conservative",
            x = "Year",
            title = "Ideology of Justices Over Time") +
-      scale_color_discrete(name = "Justice")
+      scale_color_discrete(name = "Justice") +
+      theme(axis.title.y = 
+              element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+            axis.title.x = 
+              element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
   })
   
   output$issueplot <- renderPlot({   
@@ -174,9 +179,13 @@ server <- function(input, output) {
       geom_col(show.legend = F) +
       labs(x = "Proportion of Conservative Votes",
            y = "Justice",
-           title = "Examining Conservative Vote Distribution by Issue",
-           subtitle = "Conservatism isn't the same across the board") +
-      scale_fill_manual(values = c(rep("dodgerblue4", 14)))
+           title = "Examining Conservative Vote Distribution by Issue") +
+      scale_fill_manual(values = c(rep("dodgerblue4", 14))) +
+      theme_economist() +
+      theme(axis.title.y = 
+              element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+            axis.title.x = 
+              element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
   })
   
     output$predictionplot <- renderPlot({
@@ -189,7 +198,11 @@ server <- function(input, output) {
               x = "Ideology (Greater Values are more Conservative)",
              y = "Probability") +
          scale_x_continuous(breaks = seq(-4, 4, 1)) +
-          theme_linedraw()
+         theme_economist() +
+         theme(axis.title.y = 
+                element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+              axis.title.x = 
+                element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
     })
 
 }
