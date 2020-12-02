@@ -25,7 +25,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
                a("https://github.com/ndmaxwell/finalproject", 
                  href="https://github.com/ndmaxwell/finalproject")),
              p("The goals of this project were two-fold. First, I wanted to get
-             a better sense of how maleable justices' ideologies were over time. 
+            a better sense of how malleable justices' ideologies were over time. 
            Second, I wanted to see to what extent we would be able to predict a 
            justice's vote on a given issue area given their ideological score 
            (specifically, their Martin-Quinn score). To build this model and 
@@ -55,7 +55,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
         mainPanel(
            plotOutput("justiceplotselect"),
       
-        p("Justice O'Connor is excluded from the choices in justies for this 
+        p("Justice O'Connor is excluded from the choices in justices for this 
         plot, as she retired from the Court shortly after Chief Justice Roberts 
         joined. Because of this, it wouldn't make much sense to 
         examine changes in her ideology for such a short duration. Most justices
@@ -85,10 +85,10 @@ tabPanel("Voting by Issue",
                frequently having a greater proportion of conservative votes 
                relative to liberal justices. Though, it is important to note 
                that there are real disparities. A prime example of this is 
-               for issues of economic activit, where Justice Kennedy has the 
+               for issues of economic activity, where Justice Kennedy has the 
                second highest proportion of conservative votes while being
                considered one of the famous moderates of the court. It is 
-               also ipmortant to note that because we're looking at proportions,
+               also important to note that because we're looking at proportions,
                Justices O'Connor, Kavanaugh, and Gorsuch have fewer data points
                than others, as they had shorter tenures on the Roberts Court.")
              
@@ -100,36 +100,36 @@ tabPanel("Voting by Issue",
 tabPanel("Predicting Votes",
          sidebarLayout(
              sidebarPanel(
-              selectInput(
+               checkboxGroupInput(
                inputId = "Issue_2",
-               label = "Select an Issue",
+               label = "Select Issues to Compare",
                choices = issuelist), 
          ),
          mainPanel(
              plotOutput("predictionplot"),
              
              p("This plot was built from a logistic regression that generated a
-               posteior distribution for conservative votes by issue, with
+               posterior distribution for conservative votes by issue, with
                respect to a justice's theoretical ideology score (measures on a 
                scale of -4, most liberal, to 4, most conservative). This 
                distribution was then used to calculate probability for a 
                conservative vote given the input of a give ideological score."),
              
-             p("As you can see, the probabilites are consistently increasing 
+             p("As you can see, the probabilities are consistently increasing 
                for higher conservative ideological scores, with the exception of
-               the broad miscalleaneous category. However, the 
+               the broad miscellaneous category. However, the 
                probabilities do differ wildly by issue. Even with a max 
                ideological conservatism score of 4, for the issue of federal 
                taxation, we don't even reach a 50% probability of a conservative
                vote. On issues of criminal procedure, however, inputting an
                ideological score of 4 will generate a strong likelihood of a 
                conservative vote (roughly 85%). Notably, the issue of privacy
-               has the largest difference in probabilites between a justice
+               has the largest difference in probabilities between a justice
                with a conservative versus liberal persuasion, with the most
                liberal ideological score indicating a probability of roughly
                30% and the most conservative indicating a probability of roughly
                93%. Contrasting this with the issue of federalism, which has
-               probabilties of roughly 30% at the conservative end and 50%
+               probabilities of roughly 30% at the conservative end and 50%
                at the liberal end, there is much more variation."),
              
              p("This discrepancy in variability carries important implications
@@ -190,9 +190,9 @@ server <- function(input, output) {
   
     output$predictionplot <- renderPlot({
       posterior_all_issue_ideology %>% 
-        filter(issueArea == input$Issue_2) %>% 
-        ggplot(aes(x = post_mn, y = outcome)) +
-         geom_line(color = "dodgerblue4") +
+        filter(issueArea %in% input$Issue_2) %>% 
+        ggplot(aes(x = post_mn, y = outcome, color = issueArea)) +
+         geom_line() +
          labs(title = "Posterior Distribution for Probability of 
               Voting Conservative",
               x = "Ideology (Greater Values are more Conservative)",
@@ -202,7 +202,8 @@ server <- function(input, output) {
          theme(axis.title.y = 
                 element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
               axis.title.x = 
-                element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
+                element_text(margin = margin(t = 10, r = 0, b = 0, l = 0))) +
+        scale_color_discrete(name = "Issue") 
     })
 
 }

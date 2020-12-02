@@ -81,7 +81,7 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
                                            "10" = "Federalism",
                                            "11" = "Interstate Relations",
                                            "12" = "Federal Taxation",
-                                           "13" = "Miscallaneous",
+                                           "13" = "Miscellaneous",
                                            "14" = "Private Action")) %>% 
                  mutate(direction = as.factor(recode(direction,
                                            "1" = "Conservative",
@@ -122,7 +122,7 @@ new_tibble <- tibble(post_mn = rep(seq(-4, 4, .1), 13),
                    issueArea = rep(c("Criminal Procedure", "Civil Rights",
                     "First Amendment", "Due Process", "Privacy", "Attorneys",
                     "Unions", "Economic Activity", "Judicial Power", 
-                    "Federalism", "Federal Taxation", "Miscallaneous",
+                    "Federalism", "Federal Taxation", "Miscellaneous",
                     "Private Action"), each = 81))
 
 prediction_model <- stan_glm(conservative ~ issueArea*post_mn,
