@@ -17,8 +17,16 @@ justiceCentered <-
   read_csv("SCDB_2020_01_justiceCentered_LegalProvision.csv",
            col_types = cols())
 
+# Here, I'm importing the data from the University of Washington Law School as
+# described on my "about" page. The col_types that the code defaults to work,
+# so there wasn't any need to change.
+
 justiceIdeology <- read_csv("justices.csv",
                             col_types = cols())
+
+# This data is the University of Michigan data as described in the "about" page
+# in my shiny app. Again, the default col_types work, so there was no need to
+# change it.
 
 ```
 
@@ -26,6 +34,10 @@ justiceIdeology <- read_csv("justices.csv",
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
 }
+
+# This is a simple function that allows me to grab the last four characters of a
+# given input. For this project, I'll be using it on the dateDecision column of
+# the justiceCentered tibble to grab the year of the decision.
 
 justiceIdeologyyear <- justiceIdeology %>% 
   mutate(year = term) %>% 
@@ -48,7 +60,6 @@ roberts_small <- roberts %>%
  # I'll only need these columns for this data, so I'm going to select them here
  # so I can speed along processing time since we're working with a big dataset.
 
-
 joined_data <- left_join(roberts_small, justiceIdeologyyear, 
                   by = c("year" = "year", 
                   "justice" = "justice",
@@ -68,6 +79,10 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
                                       "EKagan" = "Kagan",
                                       "NMGorsuch" = "Gorsuch",
                                       "BMKavanaugh" = "Kavanaugh")) %>% 
+  
+  # Here, I'm manually recoding the justice names as they appear in the data
+  # originally to be more display-friendly in my shinyapp.
+  
                  mutate(issueArea = recode(issueArea,
                                            "1" = "Criminal Procedure",
                                            "2" = "Civil Rights",
@@ -83,13 +98,31 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
                                            "12" = "Federal Taxation",
                                            "13" = "Miscellaneous",
                                            "14" = "Private Action")) %>% 
+  
+  # Using the codebook provided in the University of Michigan dataset, I'm
+  # simply recoding the issue areas to what they represent.
+  
                  mutate(direction = as.factor(recode(direction,
                                            "1" = "Conservative",
                                            "2" = "Liberal"))) %>% 
                  mutate(conservative = as.factor(ifelse(direction == 
                                                 "Conservative", 1, 0))) %>% 
+  
+  # With these transformations, I'm creating a "conservative" column that will
+  # allow me to predict the conservative direction more easily, as that's the
+  # unit of analysis that will be most useful for this project. I thought for a
+  # bit of how to do this, but simply coding the direction based on the
+  # Washington University dataset to the ideology of the direction and then
+  # creating a new column for conservatism made sense in my head and allowed me
+  # to be sure there wouldn't be an error in such an important column.
+  
                  mutate(justiceName = as.factor(justiceName),
                         issueArea = as.factor(issueArea)) %>%
+  
+  # Because of their limited number and the analysis that we will be doing
+  # later, coding both the issues and justices as factors now that they're in
+  # their final forms makes sense.
+  
                  mutate(year = as.integer(year)) %>%
                  drop_na()
 
@@ -101,7 +134,9 @@ joined_data <- left_join(roberts_small, justiceIdeologyyear,
 # scores. I needed to do a bit of cleaning here to get the justice names in a
 # more friendly format, code the issue areas so that they are easily readable,
 # and then recode the "conservative" variable, as well as factor transform a few
-# other variables.
+# other variables. At the end, this was saved as an RDS file called
+# "roberts.rds"
+
 ```
 
 ```{r ideological history plot}
@@ -114,7 +149,9 @@ roberts_issue_area_votes <- joined_data %>%
 
 # This quick dataset allows us to visualize the proportion of conservative votes
 # for each justice for each issue area. I've saved this as a .rds file so I can
-# quickly use it in my Shiny App.
+# quickly use it in my Shiny App. Specifically, it is titled
+# "robertsissues.rds"
+
 ```
 
 ```{r prediction model}
@@ -125,20 +162,55 @@ new_tibble <- tibble(post_mn = rep(seq(-4, 4, .1), 13),
                     "Federalism", "Federal Taxation", "Miscellaneous",
                     "Private Action"), each = 81))
 
+# Here, I'm creating a new tibble that will serve as the newdata for my
+# posterior predict. After experimenting a bit, it made sense to have inputted
+# ideology scores at increments of .1, allowing for 81  data points for each
+# issue. This allowed for enough precision to see meaningful differences in the
+# trends while allowing for run time constraints and making sure we don't get
+# tripped up with irrelevant noise. As a note, I drop the "interstate relations"
+# issue here, as there were not enough cases during the Roberts Court to make
+# any meaningful conclusions. Thus, we're down to 13 issue areas. We then have
+# each value from -4 to 4 by 0.1 (81 numbers) and each issue (13) issue areas
+# defined as above.
+
 prediction_model <- stan_glm(conservative ~ issueArea*post_mn,
                              data = joined_data,
                              refresh = 0,
                              binomial(link = "logit"))
 
+# As explained in the shinyapp, this model allows us to predict a conservative
+# vote by issue area and a theoretical ideology score (post_mn). Including their
+# interaction is important here as well, as, conceptually, we would think that
+# ideology would impact different issues differently.
+
 all_issue_ideology <- posterior_predict(prediction_model, 
                                         newdata = new_tibble) %>%
     as_tibble() %>%
     mutate_all(as.numeric) %>% 
+  
+  # Standard method of generating a posterior distribution using our model and
+  # the new_tibble we created above.
+  
     summarize_all(mean) %>% 
+  
+  # Here, we use the summarize command with mean to get the probability of
+  # voting conservative on that issue for that given ideology score.
+  
     pivot_longer(cols = everything(),
                names_to = "ideology_score",
                values_to = "outcome") %>% 
+  
+  # Standard pivot_longer here to get our data into a format that we can more
+  # easily work with it.
+  
     bind_cols(new_tibble) %>% 
+  
+  # Because we haven't altered the order of anything, we're able to use the
+  # bind_cols command with our new_tibble that we created to allow our outcomes
+  # to perfectly align with the correct issue area and baseline ideology score.
+  # Almost like magic! With the data in this form, we will be able to graph the
+  # results easily using a simple line plot.
+  
     select(-ideology_score)
 
 # This is the full code for the logistic regression that will allow us to
@@ -152,7 +224,8 @@ all_issue_ideology <- posterior_predict(prediction_model,
 # object so that I can easily graph the relevant data in a ggplot in the Shiny
 # App. Originally, I ran the model in the Shiny App itself, but this led to long
 # lag times and long upload times. Running all of the calculations and saving
-# the results in a .rds file is far more efficient.
+# the results in a .rds file is far more efficient. The RDS file is called
+# posterior_all_issue_ideology.rds"
 
 ```
 

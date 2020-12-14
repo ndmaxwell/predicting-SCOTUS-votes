@@ -3,7 +3,8 @@ library(tidyverse)
 library(shinythemes)
 library(ggthemes)
 
-# Load in data through .rds files.
+# Load in data through .rds files. See the data_organizing.Rmd file for more
+# information on each of these .rds files.
 
 posterior_all_issue_ideology <- readRDS("posterior_all_issue_ideology.rds")
 roberts_ideology_decisions <- readRDS("roberts.rds")
@@ -13,35 +14,20 @@ roberts_issues <- readRDS("robertsissues.rds")
 
 justicelist <- unique(roberts_ideology_decisions$justiceName)
 justicelist_no_oconnor <- justicelist[-2]
+
+# We need a list without O'Connor for the panel on the ideological history of
+# the justices, as Justice O'Connor was only on the Roberts Court for a brief
+# period of time.
+
 issuelist <- unique(roberts_ideology_decisions$issueArea)
+
+# This list contains the 13 different issue areas that we'll be using. It will
+# be necessary for the drop down buttons.
 
 # Begin shiny app code. 
 
 ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
     "Examining the Ideology of the Roberts Court",
-    tabPanel("About",
-             h3("Hello! My name is Nick Maxwell."),
-             p("Here is the link to my Github:",
-               a("https://github.com/ndmaxwell/finalproject", 
-                 href="https://github.com/ndmaxwell/finalproject")),
-             p("The goals of this project were two-fold. First, I wanted to get
-            a better sense of how malleable justices' ideologies were over time. 
-           Second, I wanted to see to what extent we would be able to predict a 
-           justice's vote on a given issue area given their ideological score 
-           (specifically, their Martin-Quinn score). To build this model and 
-           inform my question, I first looked at date from the Washington 
-           University Law's Supreme Court This historical data, combined 
-           with the University of Michigan's 
-           Justices dataset, allowed me to examine historical trends in the 
-           Roberts court and make predictions for future voting. 
-           The Justices dataset, containing Martin Quinn ideology scores for 
-             each justice in each year can be found", 
-             a("here", href="https://mqscores.lsa.umich.edu/measures.php"),
-             ". The Washington University Law's Supreme Court database can be 
-             found",
-             a("here", href="http://scdb.wustl.edu/data.php"), ".")),
-    
-    # End of panel 1
     
     tabPanel("Ideological History",
     sidebarLayout(
@@ -65,7 +51,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
         )
     ),
     
-    # End of panel 2. The goal here was to give the viewer an idea of historic
+    # End of panel 1. The goal here was to give the viewer an idea of historic
     # ideology scores. The data here is pulled from the
     # "roberts_issue_area_votes" tibble in the data_organizing.Rmd file. It was
     # saved as an RDS and imported.
@@ -94,8 +80,11 @@ tabPanel("Voting by Issue",
              
            ))),
 
-     # End of panel 3. Similarly, the goal here was to give viewers an idea of
-     # the distribution of votes by different issue areas.
+     # End of panel 2. Similarly, the goal here was to give viewers an idea of
+     # the distribution of votes by different issue areas. This was a simple
+     # enough task using the roberts_issues tibble from the robertsissues.rds
+     # file. Again, see the data_organizing.Rmd file for more information on
+     # this tibble.
 
 tabPanel("Predicting Votes",
          sidebarLayout(
@@ -142,11 +131,37 @@ tabPanel("Predicting Votes",
                federalism, which tracks less closely with ideological
                persuasion.")
              
-         )))
+         ))),
 
-     # End of panel 4. This is the statistical model of the project and the most
-     # complicated element - actually giving probabilities for votes on a given
-     # issue area depending on baseline ideology.
+# End of panel 3. This is the statistical model of the project and the most
+# complicated element - actually giving probabilities for votes on a given
+# issue area depending on baseline ideology. The text in the shinyapp
+# itself gives context to the results.
+
+tabPanel("About",
+         h3("Hello! My name is Nick Maxwell."),
+         p("Here is the link to my Github:",
+           a("https://github.com/ndmaxwell", 
+             href="https://github.com/ndmaxwell")),
+         p("The goals of this project were two-fold. First, I wanted to get
+            a better sense of how malleable justices' ideologies were over time. 
+           Second, I wanted to see to what extent we would be able to predict a 
+           justice's vote on a given issue area given their ideological score 
+           (specifically, their Martin-Quinn score). To build this model and 
+           inform my question, I first looked at date from the Washington 
+           University Law's Supreme Court This historical data, combined 
+           with the University of Michigan's 
+           Justices dataset, allowed me to examine historical trends in the 
+           Roberts court and make predictions for future voting. 
+           The Justices dataset, containing Martin Quinn ideology scores for 
+             each justice in each year can be found", 
+           a("here", href="https://mqscores.lsa.umich.edu/measures.php"),
+           ". The Washington University Law's Supreme Court database can be 
+             found",
+           a("here", href="http://scdb.wustl.edu/data.php"), "."))
+
+     # End of panel 4. This is my about page to give context to the project and
+     # link relevant resources!
 
 ))
 
@@ -171,6 +186,17 @@ server <- function(input, output) {
               element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
   })
   
+  # This is the plot in the "Ideological History" tab. It is a line chart that
+  # allows the user to select justices from the Roberts Court and see their
+  # ideological evolution. The post_mn variable is the measurement of their
+  # ideology (their Martin-Quinn score). This value was assigned each year by
+  # the researchers at the University of Michigan and made the creation of this
+  # particular plot relatively straightforward. Much of the code we see here are
+  # design elements. I've been a regular reader of The Economist for a few years
+  # now and prefer to use the theme whenever possible. I did have to use the
+  # element_text call to change the axis title spacing on the plot to improve
+  # the readability.
+  
   output$issueplot <- renderPlot({   
     roberts_issues %>% 
       filter(issueArea == input$Issue) %>% 
@@ -187,6 +213,13 @@ server <- function(input, output) {
             axis.title.x = 
               element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
   })
+  
+  # This plot, in the "Voting by Issue" tab allows the user to see the
+  # proportion of conservative votes by issue. Aesthetic decisions follow the
+  # reasoning of the first plot and the theme of the shinyapp itself. The
+  # creation of the plot was straightforward after the data wrangling was
+  # finished. See the data_organizing.Rmd comments for more context on that if
+  # desired.
   
     output$predictionplot <- renderPlot({
       posterior_all_issue_ideology %>% 
@@ -205,6 +238,17 @@ server <- function(input, output) {
                 element_text(margin = margin(t = 10, r = 0, b = 0, l = 0))) +
         scale_color_discrete(name = "Issue") 
     })
+    
+    # This is the big payoff of the project, which is in the "Predicting Votes"
+    # tab. The complicated work, again, was done in the data wrangling. After
+    # that work (see data_organizing.Rmd), I can simply create a line plot with
+    # the outcome of a conservative vote probability on the y-axis and the
+    # theoretical ideological score on the X. After meeting with my TF, I
+    # decided to make this a checkbox input plot rather than a drop down so
+    # viewers could more easily see distinctions between different issue areas.
+    # Seeing them side by side, we can see that some issues have very little
+    # change, while some (like unions) have probabilities that swing from near 0
+    # to near 1.
 
 }
 
